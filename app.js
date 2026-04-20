@@ -6,12 +6,12 @@ var logger = require('morgan');
 require("dotenv").config();
 var connectDB = require("./config/db"); // ✅ Import connectDB
 const cors = require('cors')
-
+const deliveryManagementRoutes = require("./routes/deliveryManagementRoutes")
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
 const userRoutes = require("./routes/userRoutes")
-const productRoutes = require("./routes/productRoutes")
+// const productRoutes = require("./routes/productRoutes")
 const cartRoutes = require("./routes/cartRoutes")
 
 const orderRoutes = require("./routes/orderRoutes")
@@ -30,6 +30,8 @@ const manageAdmin = require("./routes/adminManagerRoutes")
 // const uploadRoutes = require("./controllers/routeUpload")
 const stockRoutes = require("./routes/stockRoutes");
 const uploadImage = require("./routes/uploadRoute")
+const deliveryRoutes = require("./routes/deliveryRoutes") // New import for delivery routes
+var deliveryDashboardRouter = require('./routes/deliveryDashboardRoutes');
 
 var app = express();
 
@@ -57,7 +59,7 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
 app.use("/api/users", userRoutes)
-app.use("/api/products", productRoutes)
+// app.use("/api/products", productRoutes)
 app.use("/api/cart", cartRoutes)
 app.use("/api/orders", orderRoutes)
 // app.use("/api/upload", uploadRoutes)
@@ -76,10 +78,17 @@ app.use('/api/updateUserProfileDetail', userRoutes)
 app.use('/api/admin-manage', manageAdmin)
 app.use("/api/stocks", stockRoutes);
 app.use("/api/upload", uploadImage);
+app.use("/api/delivery", deliveryRoutes); // Add the new delivery routes
+app.use('/api/delivery-dashboard', deliveryDashboardRouter);
+app.use("/api/deliver-management",deliveryManagementRoutes)
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
-});
+
+
+app.use(express.json())
+
+// app.use(function(req, res, next) {
+//   next(createError(404));
+// });
 
 // error handler
 app.use(function(err, req, res, next) {

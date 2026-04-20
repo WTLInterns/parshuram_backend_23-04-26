@@ -9,7 +9,10 @@ const cartSchema = new mongoose.Schema(
     },
     userName: {
       type: String,
-      required: true,
+      // required: true,
+    },
+    totalProduts:{
+      type:Number
     },
     items: [
       {
@@ -21,16 +24,17 @@ const cartSchema = new mongoose.Schema(
         quantity: {
           type: Number,
           required: true,
-          default: 1,
+          default:1
         },
-        size: {
-          type: String,
+        NoOfItems: {
+          type: Number,
           required: true,
+          default:1
         },
-        color: {
-          type: String,
-          required: true,
-        },
+        // color: {
+        //   type: String,
+        //   required: true,
+        // },
       },
     ],
   },

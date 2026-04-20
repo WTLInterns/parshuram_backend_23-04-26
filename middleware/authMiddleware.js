@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User"); // Assuming you have a User model
-
+const DeliveryBoy = require("../models/DeliveryBoy")
 // Middleware to protect routes by verifying JWT token
 const protect = async (req, res, next) => {
   let token;
@@ -13,10 +13,12 @@ const protect = async (req, res, next) => {
 
       // Verify the token and decode the user ID
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("Decoded Token:", decoded);
 
       // Find the user by ID and attach to request object (excluding the password)
-      req.user = await User.findById(decoded.id).select("-password");
-
+    let user  = await User.findById(decoded.id).select("-password");
+      let deliveryBoy = await DeliveryBoy.findById(decoded.id).select("-password");
+      req.user = user || deliveryBoy
       if (!req.user) {
         return res.status(401).json({ message: "Not authorized, user not found" });
       }
@@ -69,4 +71,14 @@ const adminAuthMiddleware = async (req, res, next) => {
   }
 };
 
-module.exports = { protect, isAdmin, adminAuthMiddleware };
+
+const isDeliveryBoy = async (req, res, next) => {
+  // Ensure the user is authenticated and has the "DeliveryBoy" role
+  if (req.user && req.user.role === "DeliveryBoy") {
+    next(); // User is a delivery boy, proceed to the next handler
+  } else {
+    res.status(403).json({ message: "Not authorized as delivery boy" });
+  }
+};
+
+module.exports = { protect, isAdmin, adminAuthMiddleware,isDeliveryBoy };

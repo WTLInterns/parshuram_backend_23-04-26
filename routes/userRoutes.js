@@ -11,6 +11,9 @@ const {
   changePassword,
   getUserProfileDetail,
   updateUserProfileDetail,
+  userResetPassword,
+  verifyOTP,
+  updatePassword
 } = require("../controllers/userController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -27,6 +30,10 @@ router.post("/sendpasswordlink", resetPassword);
 
 // verify user for forgot password time
 router.get("/forgotpassword/:id/:token", forgotPassword);
+
+router.post("/userSendpasswordlink", userResetPassword);
+router.post("/verifyOTP",verifyOTP)
+router.post('/update-password', updatePassword);
 
 // change password
 router.post("/:id/:token", changePassword);

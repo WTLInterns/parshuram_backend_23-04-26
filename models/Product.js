@@ -86,7 +86,8 @@ const productSchema = new mongoose.Schema({
   productDescription: String,
   nutritionalInfo: String,
   price: Number,
-  quantity: String,
+ 
+  quantity: Number,
   unit: String,
   category: String,
   subCategory: String,

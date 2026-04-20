@@ -2,11 +2,11 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 var bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
-
+const DeliveryBoy = require("../models/DeliveryBoy")
 // for signup
 const registerUser = async (req, res) => {
     try {
-      const { name, email, password, phone, street, city, state, zipcode } = req.body;
+      const { name, email, password, phone, street, city, state, zipcode,role} = req.body;
   
       // Validate required fields
       if (!name || !email || !password || !phone || !street || !city || !state || !zipcode) {
@@ -28,7 +28,8 @@ const registerUser = async (req, res) => {
         street,
         city,
         state,
-        zipcode
+        zipcode,
+        role
       });
   
       await newUser.save();
@@ -40,50 +41,169 @@ const registerUser = async (req, res) => {
   };
   
   
-  // Login a user
+  
   const loginUser = async (req, res) => {
     try {
       const { email, password } = req.body;
   
-      // Validate required fields
       if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password are required' });
+        return res.status(400).json({ message: 'Email and password are required.' });
       }
   
-      // Check if the user exists
-      const user = await User.findOne({ email });
+      let user = await User.findOne({ email });
+      let role = 'user';
+  
       if (!user) {
-        return res.status(401).json({ message: 'Invalid email or password' });
+        user = await DeliveryBoy.findOne({ email });
+        if (user) {
+          role = 'DeliveryBoy';
+        }
+      } else {
+        role = user.role || 'user';
       }
   
-      // Compare the provided password with the stored password
-      const isMatch = await user.comparePassword(password);
-      if (!isMatch) {
-        return res.status(401).json({ message: 'Invalid email or password' });
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid email or password.' });
       }
   
-      // Generate a JWT token
-      const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-        expiresIn: '20d',
-      });
+      const isPasswordValid = await user.comparePassword(password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: 'Invalid email or password.' });
+      }
   
-      // Send response with token and user information
-      res.status(200).json({
+      const token = jwt.sign({ id: user._id, role }, process.env.JWT_SECRET, { expiresIn: '20d' });
+  
+      const redirectMap = {
+        user: '/home',
+        DeliveryBoy: '/deliveryDashboard',
+      };
+  
+      const redirectPath = redirectMap[role] || '/home';
+  
+      return res.status(200).json({
         token,
         user: {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role, // Include role for frontend role-based navigation
+          role,
         },
+        redirect: redirectPath,
       });
+  
     } catch (error) {
-      res.status(500).json({ message: 'Error logging in', error: error.message });
+      console.error('Login error:', error);
+      return res.status(500).json({ message: 'Internal server error.', error: error.message });
     }
   };
 
+
+
+  
+
   // Get user profile
-const getUserProfile = async (req, res) => {
+
+//   const loginUser = async (req, res) => {
+//     try {
+//         const { email, password } = req.body;
+
+//         if (!email || !password) {
+//             return res.status(400).json({ message: 'Email and password are required.' });
+//         }
+
+//         // 🔹 Find both User and DeliveryBoy in parallel
+//         const user = await User.findOne({ email });
+//         console.log("admin role",user.role)
+//         const deliveryBoy = await DeliveryBoy.findOne({ email });
+
+//         let authUser = user || deliveryBoy;
+//         let role = user ? 'user' : (deliveryBoy ? 'DeliveryBoy' : null);
+
+//         if (!authUser) {
+//             return res.status(401).json({ message: 'Invalid email or password (User not found).' });
+//         }
+
+//         console.log("Stored Password:", authUser.password); // Debugging: Check stored password
+//         console.log("Entered Password:", password); // Debugging: Check entered password
+
+//         // 🔹 Compare password
+//         const isPasswordValid = await bcrypt.compare(password, authUser.password);
+//         console.log("Password Valid:", isPasswordValid); // Debugging: Check password match
+
+//         if (!isPasswordValid) {
+//             return res.status(401).json({ message: 'Invalid email or password (Wrong password).' });
+//         }
+
+//         // 🔹 Generate token
+//         const token = jwt.sign({ id: authUser._id, role }, process.env.JWT_SECRET, { expiresIn: '20d' });
+
+//         return res.status(200).json({
+//             token,
+//             user: {
+//                 id: authUser._id,
+//                 name: authUser.name,
+//                 email: authUser.email,
+//                 role,
+//             },
+//             redirect: role === "DeliveryBoy" ? "/deliveryDashboard" : "/home",
+//         });
+
+//     } catch (error) {
+//         console.error('Login error:', error);
+//         return res.status(500).json({ message: 'Internal server error.', error: error.message });
+//     }
+// };
+
+
+
+// const loginUser = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     if (!email || !password) {
+//       return res.status(400).json({ message: 'Email and password are required.' });
+//     }
+
+//     // 🔹 Find the User
+//     const user = await User.findOne({ email });
+
+//     if (!user) {
+//       return res.status(401).json({ message: 'Invalid email or password (User not found).' });
+//     }
+
+//     console.log("Stored Password:", user.password); // Debugging: Check stored password
+//     console.log("Entered Password:", password); // Debugging: Check entered password
+
+//     // 🔹 Compare password
+//     const isPasswordValid = await bcrypt.compare(password, user.password);
+//     console.log("Password Valid:", isPasswordValid); // Debugging: Check password match
+
+//     if (!isPasswordValid) {
+//       return res.status(401).json({ message: 'Invalid email or password (Wrong password).' });
+//     }
+
+//     // 🔹 Generate token
+//     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '20d' });
+
+//     return res.status(200).json({
+//       token,
+//       user: {
+//         id: user._id,
+//         name: user.name,
+//         email: user.email,
+//         role: user.role, // Use the role directly from the user
+//       },
+//       redirect: user.role === "DeliveryBoy" ? "/deliveryDashboard" : "/home",
+//     });
+
+//   } catch (error) {
+//     console.error('Login error:', error);
+//     return res.status(500).json({ message: 'Internal server error.', error: error.message });
+//   }
+// };
+
+
+  const getUserProfile = async (req, res) => {
     try {
       const user = await User.findById(req.user.id).select('-password'); // Exclude password from response
       if (!user) {
@@ -158,6 +278,7 @@ const transporter = nodemailer.createTransport({
           subject: "Password Reset Request",
           text: `Click on this link to reset your password: http://localhost:3000/forgotPassword/${userFind.id}/${setusertoken.verifyToken}`
         }
+  console.log("userid...",userFind.id,"setusertoken",setusertoken.verifyToken);
   
         transporter.sendMail(mailOptions, (error, info) => {
           if (error) {
@@ -223,6 +344,252 @@ const transporter = nodemailer.createTransport({
     }
   }
 
+
+  const userResetPassword = async (req, res) => {
+    const { email } = req.body;
+    console.log("Hii you are in email",email)
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+  
+    console.log('Received email:', email);
+  
+    try {
+      const userFind = await User.findOne({ email });
+  
+      if (!userFind) {
+        return res.status(404).json({ message: "User not found" });
+      }
+  
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000);
+  
+      // Set expiry time for 1 minute from now
+      const expiry = Date.now() + 60 * 1000;
+  
+      // Update user with OTP and expiry
+      userFind.resetOTP = otp;
+      userFind.resetOTPExpiry = expiry;
+      console.log("otp",userFind.resetOTP)
+      await userFind.save();
+  
+      const mailOptions = {
+        from: "gfullstackwtl@gmail.com",
+        to: email,
+        subject: "Password Reset OTP",
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background-color: #f9f9f9;
+                color: #333;
+              }
+              .container {
+                max-width: 600px;
+                margin: 0 auto;
+                background-color: #fff;
+                border-radius: 5px;
+                overflow: hidden;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+              }
+              .header {
+                background-color: #ffffff;
+                padding: 20px;
+                text-align: center;
+                border-bottom: 2px solid #22c55e;
+              }
+              .header h1 {
+                color: #22c55e;
+                margin: 0;
+                font-size: 24px;
+              }
+              .subheader {
+                text-align: center;
+                color: #666;
+                font-size: 14px;
+                margin-top: 5px;
+              }
+              .content {
+                padding: 20px;
+              }
+              .otp-box {
+                background-color: #f5f5f5;
+                border-radius: 5px;
+                padding: 20px;
+                text-align: center;
+                margin: 20px 0;
+              }
+              .otp-code {
+                font-size: 32px;
+                font-weight: bold;
+                letter-spacing: 5px;
+                color: #22c55e;
+              }
+              .details {
+                margin: 20px 0;
+                font-size: 14px;
+              }
+              .footer {
+                background-color: #f5f9ff;
+                padding: 15px;
+                text-align: center;
+                font-size: 12px;
+                color: #666;
+              }
+              .note {
+                font-size: 12px;
+                color: #777;
+                text-align: center;
+                margin-top: 20px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Parshuram Dairy</h1>
+                <div class="subheader">Password Reset Request</div>
+              </div>
+              
+              <div class="content">
+                <p>Hello,</p>
+                <p>We received a request to reset your password. Please use the OTP below to complete your password reset.</p>
+                
+                <div class="otp-box">
+                  <div>Your One-Time Password (OTP)</div>
+                  <div class="otp-code">${otp}</div>
+                </div>
+                
+                <div class="details">
+                  <p><strong>OTP Details:</strong></p>
+                  <p>• <strong>Expires in:</strong> 2 minutes</p>
+                  <p>• <strong>Email:</strong> ${email}</p>
+                </div>
+                
+                <p>If you did not request a password reset, please ignore this email or contact our support team.</p>
+              </div>
+              
+              <div class="footer">
+                <p>Thank you for using <strong>Parshuram Dairy</strong>!</p>
+                <p>© ${new Date().getFullYear()} Parshuram Dairy. All rights reserved.</p>
+              </div>
+              
+              <div class="note">
+                This is an automated email, please do not reply to this message.
+              </div>
+            </div>
+          </body>
+          </html>
+        `
+      };
+  
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.log("Error sending mail:", error);
+          return res.status(500).json({ message: "Failed to send OTP" });
+        } else {
+          console.log("OTP Email sent:", info.response);
+          return res.status(200).json({ message: "OTP sent successfully" });
+        }
+      });
+  
+    } catch (error) {
+      console.error("Reset password error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  };
+  
+  const verifyOTP = async (req, res) => {
+    const { email, otp } = req.body
+  
+
+
+    console.log("email OTP",email)
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" })
+    }
+  
+    try {
+      const user = await User.findOne({ email })
+
+      console.log("user",user)
+      if (!user) {
+        return res.status(404).json({ message: "User not found" })
+      }
+  
+      console.log("Stored OTP:", user.resetOTP);  
+      // or user.otp for the updated schema
+    console.log("Received OTP:", otp);
+      // Check if OTP matches and is not expired
+
+      if (user.resetOTP !== otp) {
+        return res.status(400).json({ message: "Invalid OTP" })
+      }
+  
+      if (new Date() > new Date(user.resetOTPExpiry)) {
+        return res.status(400).json({ message: "OTP has expired. Please request a new one." })
+      }
+
+
+      user.isOTPVerified = true;
+      await user.save();
+      // OTP is valid, allow user to reset password
+      return res.status(200).json({ message: "OTP verified successfully" })
+    } catch (error) {
+      console.error("Error in verifyOTP:", error)
+      return res.status(500).json({ message: "Internal Server Error" })
+    }
+  }
+
+  
+  const updatePassword = async (req, res) => {
+    const { email, newPassword, confirmPassword } = req.body;
+  
+    if (!email || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: "Email, new password, and confirm password are required" });
+    }
+  
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+  
+    try {
+      const user = await User.findOne({ email });
+  
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      console.log("OTP is Verified",user.isOTPVerified)
+  
+      if (!user.isOTPVerified) {
+        return res.status(403).json({ message: "OTP not verified" });
+      }
+  
+      // Update password (no need to hash manually because the pre-save hook will handle it)
+      user.password = newPassword;
+  
+      // Clear OTP and flags
+      user.resetOTP = undefined;
+      user.resetOTPExpiry = undefined;
+      user.isOTPVerified = false;
+  
+      await user.save(); // pre-save hook will automatically hash the password before saving
+  
+      return res.status(200).json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  };
+  
+
+
   // user profile details fetch
 const getUserProfileDetail = async (req, res) => {
     try {
@@ -262,4 +629,4 @@ const updateUserProfileDetail = async (req, res) => {
     }
   };
 
-  module.exports = { registerUser, loginUser, getUserProfile, updateUserProfile, changePassword, resetPassword, forgotPassword, getUserProfileDetail, updateUserProfileDetail };
+  module.exports = { registerUser, loginUser, getUserProfile, updateUserProfile, changePassword, resetPassword, forgotPassword, getUserProfileDetail, updateUserProfileDetail, userResetPassword, verifyOTP, updatePassword   };

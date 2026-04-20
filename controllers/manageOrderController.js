@@ -1,4 +1,5 @@
 const Order = require("../models/Order");
+const OrderAssignment = require("../models/OrderAssignment")
 
 const veiwOrders = async (req, res) => {
     try {
@@ -20,33 +21,112 @@ const veiwOrders = async (req, res) => {
     }
 }
 
-const updateOrders = async (req, res) => {
-    try {
+// const updateOrders = async (req, res) => {
+//     try {
 
-        const { orderId } = req.params; // Get order ID & item ID from request URL
-        const updateData = req.body; // Get update data from request body
+//         const { orderId } = req.params; // Get order ID & item ID from request URL
+//         const updateData = req.body; // Get update data from request body
         
-        // Update only the specific item in the order
-        const updatedOrder = await Order.findOneAndUpdate(
-            { _id: orderId }, // Find the order that contains the item
-            { $set: updateData }
-            // { $set: { "items.$": updateData } }, // Update only the matched item
-        );
+//         // Update only the specific item in the order
+//         const updatedOrder = await Order.findOneAndUpdate(
+//             { _id: orderId }, // Find the order that contains the item
+//             { $set: updateData }
+//             // { $set: { "items.$": updateData } }, // Update only the matched item
+//         );
 
-        if (!updatedOrder) {
-            return res.status(404).json({ success: false, message: "Order or item not found" });
-        }
+//         if (!updatedOrder) {
+//             return res.status(404).json({ success: false, message: "Order or item not found" });
+//         }
 
-        res.json({
-            success: true,
-            message: "Order item updated successfully",
-            data: updatedOrder,
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Error updating order item", error: error.message });
-    }
+//         res.json({
+//             success: true,
+//             message: "Order item updated successfully",
+//             data: updatedOrder,
+//         });
+//     } catch (error) {
+//         res.status(500).json({ success: false, message: "Error updating order item", error: error.message });
+//     }
 
-}
+// }
+
+// const updateOrders = async (req, res) => {
+//   try {
+//       const { orderId } = req.params; // Get order ID from request parameters
+//       const { status } = req.body; // Get status from request body
+
+//       // Validate if status is provided
+//       if (!status) {
+//           return res.status(400).json({ success: false, message: "Status is required" });
+//       }
+
+//       // Update the order's status
+//       const updatedOrder = await Order.findByIdAndUpdate(
+//           orderId,
+//           { $set: { Status: status } },
+//           { new: true } // Return updated document
+//       );
+
+//       if (!updatedOrder) {
+//           return res.status(404).json({ success: false, message: "Order not found" });
+//       }
+
+//       res.json({
+//           success: true,
+//           message: "Order status updated successfully",
+//           data: updatedOrder,
+//       });
+//   } catch (error) {
+//       res.status(500).json({ success: false, message: "Error updating order status", error: error.message });
+//   }
+// };
+
+const updateOrders = async (req, res) => {
+  try {
+      const { orderId } = req.params; // Get order ID from request parameters
+      const { status } = req.body; // Get status from request body
+
+      // Validate if status is provided
+      if (!status) {
+          return res.status(400).json({ success: false, message: "Status is required" });
+      }
+
+      // Update the order's status
+      const updatedOrder = await Order.findByIdAndUpdate(
+          orderId,
+          { $set: { Status: status } },  // Ensure correct field name
+          { new: true } // Return updated document
+      );
+
+      if (!updatedOrder) {
+          return res.status(404).json({ success: false, message: "Order not found" });
+      }
+
+      // Update the status in OrderAssignment as well
+      const updatedAssignment = await OrderAssignment.findOneAndUpdate(
+          { orderId: orderId },  // Find assignment linked to the order
+          { $set: { status: status } },
+          { new: true }
+      );
+
+      if (!updatedAssignment) {
+          return res.status(404).json({ success: false, message: "Order assignment not found" });
+      }
+
+      res.json({
+          success: true,
+          message: "Order and assignment status updated successfully",
+          order: updatedOrder,
+          assignment: updatedAssignment
+      });
+
+  } catch (error) {
+      console.error("Error updating order status:", JSON.stringify(error, Object.getOwnPropertyNames(error))); // Debugging error safely
+      res.status(500).json({ success: false, message: "Error updating order status", error: error.toString() });
+  }
+};
+
+
+
 
 const deleteOrder = async (req, res) => {
     try {

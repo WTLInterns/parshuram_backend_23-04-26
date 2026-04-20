@@ -1,4 +1,4 @@
-const mongoose = require("mongoose"); // Add this line
+const mongoose = require("mongoose"); 
 const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
@@ -49,8 +49,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["user", "admin"],
-      default: "user",
+      enum: ["user","DeliveryBoy","admin"],
+      // default: "user",
     },
     tokens: [
       {
